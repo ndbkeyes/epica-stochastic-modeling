@@ -58,9 +58,6 @@ class DataSet:
         sd["Q_times"] = np.linspace(sd["t_start"], sd["t_stop"], sd["Qn"], endpoint=False)
         
         self.divs = sd
-
-
-        print("XYZ")
         
 
         
