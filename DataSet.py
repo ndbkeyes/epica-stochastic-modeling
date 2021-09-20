@@ -17,20 +17,19 @@ class DataSet:
 
 
     # constructor
-    def __init__(self, name, path):
+    def __init__(self, path):
 
 
         ### READ & CLEAN DATA
         ts = pd.read_csv(path,sep='\s+')                                        # read CSV into pandas dataframe
-        ts = ts.rename(columns={ts.columns[0]: "time", ts.columns[1]: "data"})  # rename columns to generic X, Y
+        ts = ts.rename(columns={ts.columns[0]: "time", ts.columns[1]: "data"})  # rename columns to generic time, data
         ts["time"] *= -1                                                        # make time axis values negative
-        ts = ts.groupby(["time"],as_index=False).mean()                         # average Y-values with duplicate X-values
-        ts = ts.set_index("time",drop=True)                                     # make X into dimension not variable
+        ts = ts.groupby(["time"],as_index=False).mean()                         # average data values with duplicate times
+        ts = ts.set_index("time",drop=True)                                     # make time into dimension not variable
         ts = ts.to_xarray()                                                     # convert pandas dataframe to xarray
 
         ### SET ATTRIBUTES
-        self.data_ts = ts
-        self.nametag = name
+        self.data_ts = ts["data"]
 
 
 
@@ -61,11 +60,11 @@ class DataSet:
 
 
         ### INTERPOLATE
-        f = akima( self.data_ts.time.values, self.data_ts.data.values )             # interpolator function
+        f = akima( self.data_ts.time, self.data_ts )             # interpolator function
         ts_i = pd.DataFrame(data={"time": sd["Q_times"], "data": f(sd["Q_times"])}) # dataframe with interpolated time & data
         ts_i = ts_i.set_index("time",drop=True)                                     # index with time
-        self.data_interp = ts_i.to_xarray()                                         # convert pandas to xarray
-
+        ts_i = ts_i.to_xarray()                                                     # convert pandas to xarray Dataset
+        self.data_interp = ts_i["data"]                                             # save DataArray to object
 
 
 
@@ -74,7 +73,7 @@ class DataSet:
         # reshape time & data
         mat_shape = (sd["Pn"],sd["Pq"])
         time_reshape = np.reshape(self.data_interp.time.values, mat_shape)
-        data_reshape = np.reshape(self.data_interp.data.values, mat_shape)
+        data_reshape = np.reshape(self.data_interp.values, mat_shape)
 
         # new xarray for matrixed data & times, with coordinates (p,q)
         self.data_matrix = xr.DataArray(
@@ -89,16 +88,23 @@ class DataSet:
 
 
 
-
         ### PLOTTING
 
-        self.data_ts.plot.scatter(x="time",y="data")
-        self.data_interp.plot.scatter(x="time",y="data")
+        self.data_ts.plot()
+        self.data_interp.plot()
+        plt.title("EPICA ice core data - CO2")
+        plt.legend(["original","interpolated"])
         plt.show()
 
 
 
 
+
+
+
+
+
 path = "C:/Users/ndbke/Dropbox/_NDBK/Research/epica_data/edc3/edc3-2008_co2_DATA-series3-composite.txt"
-ds = DataSet("co2",path)
-ds.model_setup(20,10)
+ds = DataSet(path)
+ds.model_setup(20,50)
+ds.profile()
