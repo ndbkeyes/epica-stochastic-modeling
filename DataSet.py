@@ -11,8 +11,13 @@ import matplotlib.pyplot as plt
 import xarray as xr
 from scipy.interpolate import Akima1DInterpolator as akima
 
+from mftwdfa import mftwdfa
+from oumodel import oumodel
 
-class DataSet:
+
+
+
+class DataSet(mftwdfa,oumodel):
 
 
 
