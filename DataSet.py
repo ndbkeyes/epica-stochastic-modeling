@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 import xarray as xr
 from scipy.interpolate import Akima1DInterpolator as akima
 
-from mftwdfa import mftwdfa
-from oumodel import oumodel
+from mftwdfa import MftwdfaAlg
+from oumodel import OUModel
 
 
 
 
-class DataSet(mftwdfa,oumodel):
+class DataSet(MftwdfaAlg,OUModel):
 
 
 
@@ -40,7 +40,8 @@ class DataSet(mftwdfa,oumodel):
 
 
     # set up for modeling
-    def model_setup(self,Pn,Pq):
+    def model_setup(self,periods,points):
+
 
 
         ### SETTINGS DICT
@@ -49,8 +50,8 @@ class DataSet(mftwdfa,oumodel):
         sd["t_start"] = -798000                                 # start time of data range
         sd["t_stop"] = 0                                        # stop time of data range
         sd["L"] = sd["t_stop"] - sd["t_start"]                  # time range (stop - start)
-        sd["Pn"] = Pn                                           # number of periods
-        sd["Pq"] = Pq                                           # number of points per periods
+        sd["Pn"] = periods                                      # number of periods
+        sd["Pq"] = points                                       # number of points per period
         sd["Py"] = sd["L"] / sd["Pn"]                           # length of period in years
         sd["Qn"] = sd["Pq"] * sd["Pn"]                          # number of points total
         sd["Qy"] = sd["L"] / sd["Qn"]                           # time between points in years
@@ -65,11 +66,16 @@ class DataSet(mftwdfa,oumodel):
 
 
         ### INTERPOLATE
+
         f = akima( self.data_ts.time, self.data_ts )             # interpolator function
         ts_i = pd.DataFrame(data={"time": sd["Q_times"], "data": f(sd["Q_times"])}) # dataframe with interpolated time & data
         ts_i = ts_i.set_index("time",drop=True)                                     # index with time
         ts_i = ts_i.to_xarray()                                                     # convert pandas to xarray Dataset
-        self.data_interp = ts_i["data"]                                             # save DataArray to object
+        self.data_interp = ts_i["data"] - ts_i["data"].mean()                                             # save DataArray to object
+
+
+
+        self.prof()
 
 
 
@@ -93,23 +99,10 @@ class DataSet(mftwdfa,oumodel):
 
 
 
-        ### PLOTTING
+        ## PLOTTING
 
-        self.data_ts.plot()
-        self.data_interp.plot()
-        plt.title("EPICA ice core data - CO2")
-        plt.legend(["original","interpolated"])
-        plt.show()
-
-
-
-
-
-
-
-
-
-path = "C:/Users/ndbke/Dropbox/_NDBK/Research/epica_data/edc3/edc3-2008_co2_DATA-series3-composite.txt"
-ds = DataSet(path)
-ds.model_setup(20,50)
-ds.profile()
+        # self.data_ts.plot()
+        # self.data_interp.plot()
+        # plt.title("EPICA ice core data - CO2")
+        # plt.legend(["original","interpolated"])
+        # plt.show()
