@@ -1,15 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 14 11:56:55 2021
-
-@author: ndbke
-"""
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import xarray as xr
-from scipy.interpolate import Akima1DInterpolator as akima
 
 from mftwdfa import MftwdfaAlg
 from oumodel import OUModel
@@ -33,13 +25,13 @@ class DataSet(MftwdfaAlg,OUModel):
         ts = ts.set_index("time",drop=True)                                     # make time into dimension not variable
         ts = ts.to_xarray()                                                     # convert pandas dataframe to xarray
 
-        ### SET ATTRIBUTES
+        ### SET AS ATTRIBUTE
         self.data_ts = ts["data"]
 
 
 
 
-    # set up for modeling
+    # set up for OU modeling
     def model_setup(self,periods,points):
 
 
@@ -65,21 +57,10 @@ class DataSet(MftwdfaAlg,OUModel):
 
 
 
-        ### INTERPOLATE
-
-        f = akima( self.data_ts.time, self.data_ts )             # interpolator function
-        ts_i = pd.DataFrame(data={"time": sd["Q_times"], "data": f(sd["Q_times"])}) # dataframe with interpolated time & data
-        ts_i = ts_i.set_index("time",drop=True)                                     # index with time
-        ts_i = ts_i.to_xarray()                                                     # convert pandas to xarray Dataset
-        self.data_interp = ts_i["data"] - ts_i["data"].mean()                                             # save DataArray to object
-
-
-
-        self.prof()
-
-
-
         ### DATA MATRIX
+
+        # interpolate to timestamps of all points
+        self.interp(times=sd["Q_times"])
 
         # reshape time & data
         mat_shape = (sd["Pn"],sd["Pq"])
@@ -99,10 +80,10 @@ class DataSet(MftwdfaAlg,OUModel):
 
 
 
-        ## PLOTTING
+        # PLOTTING
 
-        # self.data_ts.plot()
-        # self.data_interp.plot()
-        # plt.title("EPICA ice core data - CO2")
-        # plt.legend(["original","interpolated"])
-        # plt.show()
+        self.data_ts.plot()
+        self.data_interp.plot()
+        plt.title("EPICA ice core data - CO2")
+        plt.legend(["original","interpolated"])
+        plt.show()
