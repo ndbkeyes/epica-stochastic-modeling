@@ -14,7 +14,8 @@ class MftwdfaAlg:
 
 
 
-    # interpolate data_ts values to t_new times
+    ##### interpolate data_ts values to t_new times
+    # t_new = array of times to interpolate to
     def interp(self, t_new):
 
         f = akima( self.data_ts.time, self.data_ts )                    # interpolator function
@@ -26,16 +27,15 @@ class MftwdfaAlg:
 
 
 
-    # cumulative-sum profile of interpolated data
+    ##### cumulative-sum profile of interpolated data
     def profile(self):
         self.data_profile = self.data_interp.cumsum(keep_attrs=True)
         return self.data_profile
 
 
 
-    # weighted fit to profile
-    # inputs: i = index of point to fit, s = number of points in window
-    # outputs: yhat = fitted y-value for i-th point
+    ##### weighted fit to profile
+    # i = index of point to fit, s = size of window (in # of points)
     def wfit(self,i,s):
 
 
@@ -65,7 +65,8 @@ class MftwdfaAlg:
 
 
 
-    # sum variances up and down the profile
+    ##### sum variances up and down the profile
+    # nu = index of subdivision, s = size of subdivision (in # of points)
     def varsum(self,nu,s):
 
         # number of windows of size s, within N points total
@@ -86,22 +87,25 @@ class MftwdfaAlg:
 
 
 
-    # fluctuation function
+    ##### fluctuation function
+    # s = timescale (in # of points), q = statistical moment to compute fluct func for
     def fluct(self,s,q):
 
         print(s)
-
         Ns = int(np.floor( len(self.data_profile) / s ))
         Fqs = ( 1/(2*Ns) * np.sum([self.varsum(nu,s)**(q/2) for nu in range(2*Ns)]) ) ** (1/q)
         return Fqs
 
 
 
+    ##### write MFTWDFA fluct func to text file
+    # flucts = pd DataFrame of fluctuation function (in log form)
     def write_ff(self,flucts):
         flucts.to_csv("../mftwdfa_ff.txt")
 
 
 
+    ##### read MFTWDFA fluct func from text file
     def read_ff(self):
         fluct = pd.read_csv("../mftwdfa_ff.txt")
         fluct = fluct.set_index("log_s",drop=True)
@@ -110,14 +114,14 @@ class MftwdfaAlg:
 
 
 
-    # full MFTWDFA algorithm
+    ###### full MFTWDFA algorithm
+    # points = number of points to interpolate to / resolution or whatever
     def mftwdfa(self,points):
 
+        # interpolation & profile building
         t_min = np.amin(self.data_ts.time.values)
         t_max = np.amax(self.data_ts.time.values)
         t_new = np.linspace(t_min,t_max,points)
-
-        # interpolation & profile building
         self.interp(t_new)
         self.profile()
 
@@ -125,7 +129,7 @@ class MftwdfaAlg:
         s_arr = range( 2, int(np.floor(len(self.data_profile)/2)) )
         ff = [self.fluct(s,q=2) for s in s_arr]
 
-        # save as pandas DataFrame
+        # save as DataFrame & write to text file
         flucts = pd.DataFrame( data={"log_fluct": np.log10(ff)}, index=np.log10(s_arr*(t_max-t_min)/points) )
         flucts.index.name = "log_s"
         self.write_ff(flucts)
@@ -136,7 +140,7 @@ class MftwdfaAlg:
 
 
 
-
-
+    ##### analyze slopes of fluctuation function
     def slope(self):
+        # TODO
         print("slope analysis")
